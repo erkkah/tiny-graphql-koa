@@ -21,60 +21,31 @@ import { Executable, ExecutableResult, GraphQLPlugin } from "./GraphQLPlugin";
 type CacheScope = "PUBLIC" | "PRIVATE";
 type CacheTTL = "SHORT" | "MID" | "LONG";
 
-interface CacheHint {
-    ttl?: number;
-    scope?: CacheScope;
-}
-
-type MapResponsePathHints = Map<ResponsePath, CacheHint>;
-
+/**
+ * Interface of the cache service used to back the plugin.
+ */
 export interface StringCache {
     get(key: string): string | undefined;
     put(key: string, value: string, ttl: number): void;
 }
 
-interface CacheEntry {
-    value: string;
-    expiry: number;
-}
-
-class InMemoryCache implements StringCache {
-    private entries = new Map<string, CacheEntry>();
-
-    get(key: string): string | undefined {
-        const found = this.entries.get(key);
-        if (found) {
-            const now = new Date();
-            if (now.getTime() > found.expiry) {
-                this.entries.delete(key);
-                return undefined;
-            }
-            return found.value;
-        }
-        return undefined;
-    }
-
-    put(key: string, value: string, ttl: number) {
-        this.entries.set(key, {
-            value,
-            expiry: new Date().getTime() + ttl * 1000,
-        });
-    }
-}
-
+/**
+ * Response cache plugin, adapted from the Apollo response cache.
+ */
 export class CachePlugin implements GraphQLPlugin {
-    private cache = new InMemoryCache();
-    private ttlToSeconds: { [key in CacheTTL]: number } = {
+    private readonly cache: StringCache;
+    private readonly ttlToSeconds: { [key in CacheTTL]: number } = {
         SHORT: 30,
         MID: 300,
         LONG: 3600,
     }
 
-    constructor(conf?: { ttlConfig: { [key in CacheTTL]: number } }) {
+    constructor(conf?: { cache?: StringCache, ttlConfig?: { [key in CacheTTL]: number } }) {
         this.ttlToSeconds = {
             ...this.ttlToSeconds,
             ...conf?.ttlConfig
         };
+        this.cache = conf?.cache || new InMemoryCache();
     }
 
     directives(): (DocumentNode | string)[] {
@@ -192,7 +163,6 @@ export class CachePlugin implements GraphQLPlugin {
                 if (shouldCache) {
                     const cached = this.cache.get(key);
                     if (cached) {
-                        console.log("Returning cached request");
                         const unpacked = JSON.parse(cached);
                         return unpacked;
                     }
@@ -210,7 +180,6 @@ export class CachePlugin implements GraphQLPlugin {
                 if (policy) {
                     const serialized = JSON.stringify(resultValue);
                     this.cache.put(key, serialized, policy.ttl);
-                    console.log(`Caching request: ${key}`);
                 }
             }
             return resultValue;
@@ -250,6 +219,13 @@ export class CachePlugin implements GraphQLPlugin {
     }
 
 }
+
+interface CacheHint {
+    ttl?: number;
+    scope?: CacheScope;
+}
+
+type MapResponsePathHints = Map<ResponsePath, CacheHint>;
 
 function sha(s: string) {
     return createHash("sha256")
@@ -301,5 +277,35 @@ function addHint(hints: MapResponsePathHints, path: ResponsePath, hint: CacheHin
         hints.set(path, mergeHints(existingCacheHint, hint));
     } else {
         hints.set(path, hint);
+    }
+}
+
+
+interface CacheEntry {
+    value: string;
+    expiry: number;
+}
+
+class InMemoryCache implements StringCache {
+    private entries = new Map<string, CacheEntry>();
+
+    get(key: string): string | undefined {
+        const found = this.entries.get(key);
+        if (found) {
+            const now = new Date();
+            if (now.getTime() > found.expiry) {
+                this.entries.delete(key);
+                return undefined;
+            }
+            return found.value;
+        }
+        return undefined;
+    }
+
+    put(key: string, value: string, ttl: number) {
+        this.entries.set(key, {
+            value,
+            expiry: new Date().getTime() + ttl * 1000,
+        });
     }
 }

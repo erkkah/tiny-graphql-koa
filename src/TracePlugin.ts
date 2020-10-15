@@ -5,27 +5,9 @@ import { Middleware } from "koa";
 import { GraphQLPlugin, Wrapper } from "./GraphQLPlugin";
 
 
-/*
-TODO: Check X-Apollo-Tracing header
-*/
-
-function buildPath(path: Path): string[] {
-    const result: string[] = [];
-    let here: Path | undefined = path;
-
-    while (here) {
-        result.unshift(path.key.toString());
-        here = here.prev;
-    }
-
-    return result;
-}
-
-interface TraceContext {
-    requestStart: bigint;
-    traces: ResolverTrace[];
-}
-
+/**
+ * Plugin implementing Apollo Tracing.
+ */
 export class TracePlugin implements GraphQLPlugin {
     directives(): (string | DocumentNode)[] {
         return [];
@@ -88,6 +70,23 @@ export class TracePlugin implements GraphQLPlugin {
         };
         body.extensions.tracing = tracing;
     }
+}
+
+function buildPath(path: Path): string[] {
+    const result: string[] = [];
+    let here: Path | undefined = path;
+
+    while (here) {
+        result.unshift(path.key.toString());
+        here = here.prev;
+    }
+
+    return result;
+}
+
+interface TraceContext {
+    requestStart: bigint;
+    traces: ResolverTrace[];
 }
 
 interface ResolverTrace {
