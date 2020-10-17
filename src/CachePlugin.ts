@@ -22,7 +22,7 @@ type CacheScope = "PUBLIC" | "PRIVATE";
 type CacheTTL = "SHORT" | "MID" | "LONG";
 
 /**
- * Interface of the cache service used to back the plugin.
+ * Interface of the cache service used to serve the plugin.
  */
 export interface StringCache {
     get(key: string): string | undefined;
