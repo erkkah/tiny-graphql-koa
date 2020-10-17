@@ -49,14 +49,12 @@ export class CachePlugin implements GraphQLPlugin {
     };
     private readonly keyExtractor?: CacheKeyExtractor;
     private readonly sessionIDExtractor?: SessionIDExtractor;
-    private readonly onError?: (error: Error) => void;
 
     constructor(conf?: {
         cache?: StringCache;
         ttlConfig?: { [key in CacheTTL]: number };
         extraCacheKeys?: CacheKeyExtractor;
         sessionID?: SessionIDExtractor;
-        onError?: (error: Error) => void;
     }) {
         this.ttlToSeconds = {
             ...this.ttlToSeconds,
@@ -65,7 +63,6 @@ export class CachePlugin implements GraphQLPlugin {
         this.cache = conf?.cache || new InMemoryCache();
         this.keyExtractor = conf?.extraCacheKeys;
         this.sessionIDExtractor = conf?.sessionID;
-        this.onError = conf?.onError;
     }
 
     directives(): (DocumentNode | string)[] {
@@ -200,8 +197,7 @@ export class CachePlugin implements GraphQLPlugin {
                 if (policy) {
                     if (policy.scope === "PRIVATE") {
                         if (!this.sessionIDExtractor) {
-                            this.warn("Cannot cache private scope items without session ID");
-                            return result;
+                            throw new Error("Cannot cache private scope items without session ID");
                         }
                         if (!sessionID) {
                             // Do not cache private data for non-logged in users.
@@ -220,10 +216,6 @@ export class CachePlugin implements GraphQLPlugin {
             }
             return result;
         };
-    }
-
-    private warn(message: string): void {
-        this.onError?.(new Error(message));
     }
 
     private cachePut(keyData: KeyData, ttl: number, result: ExecutionResult): void {
