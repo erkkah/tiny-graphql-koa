@@ -21,8 +21,7 @@ export interface GraphQLPlugin {
     middleware?: Middleware;
 }
 
-type MaybePromise<T> = Promise<T> | T;
-
+export type MaybePromise<T> = Promise<T> | T;
 export type ExecutableResult = MaybePromise<ExecutionResult>;
 export type Executable = (args: ExecutionArgs) => ExecutableResult;
 export type Wrapper = (next: Executable) => Executable;

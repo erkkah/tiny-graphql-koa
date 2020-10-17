@@ -16,7 +16,8 @@ import gql from "graphql-tag";
 import canonicalize from "canonicalize";
 import { createHash } from "crypto";
 
-import { Executable, ExecutableResult, GraphQLPlugin } from "./GraphQLPlugin";
+import { Executable, GraphQLPlugin, MaybePromise, ExecutableResult } from "./GraphQLPlugin";
+import { ExecutionResult } from "graphql/execution/execute";
 
 type CacheScope = "PUBLIC" | "PRIVATE";
 type CacheTTL = "SHORT" | "MID" | "LONG";
@@ -30,7 +31,14 @@ export interface StringCache {
 }
 
 /**
- * Response cache plugin, adapted from the Apollo response cache.
+ * Response cache plugin, inspired by and adapted from the Apollo response cache.
+ * 
+ * Use the `@cache()` directive on field declarations to set up cache behavior.
+ * The full response will be cached according to the most restrictive setting
+ * found while traversing the query.
+ * 
+ * To bypass the cache during query execution, add the `@noCache` directive
+ * to the query.
  */
 export class CachePlugin implements GraphQLPlugin {
     private readonly cache: StringCache;
@@ -38,14 +46,26 @@ export class CachePlugin implements GraphQLPlugin {
         SHORT: 30,
         MID: 300,
         LONG: 3600,
-    }
+    };
+    private readonly keyExtractor?: CacheKeyExtractor;
+    private readonly sessionIDExtractor?: SessionIDExtractor;
+    private readonly onError?: (error: Error) => void;
 
-    constructor(conf?: { cache?: StringCache, ttlConfig?: { [key in CacheTTL]: number } }) {
+    constructor(conf?: {
+        cache?: StringCache;
+        ttlConfig?: { [key in CacheTTL]: number };
+        extraCacheKeys?: CacheKeyExtractor;
+        sessionID?: SessionIDExtractor;
+        onError?: (error: Error) => void;
+    }) {
         this.ttlToSeconds = {
             ...this.ttlToSeconds,
             ...conf?.ttlConfig
         };
         this.cache = conf?.cache || new InMemoryCache();
+        this.keyExtractor = conf?.extraCacheKeys;
+        this.sessionIDExtractor = conf?.sessionID;
+        this.onError = conf?.onError;
     }
 
     directives(): (DocumentNode | string)[] {
@@ -143,28 +163,29 @@ export class CachePlugin implements GraphQLPlugin {
             const isQuery = operation?.operation === "query";
             const shouldCache = !(operation?.directives?.find((directive) => directive.name.value === "noCache") != undefined);
 
-            let key = "";
+            let keyData: KeyData = {};
             let hints: MapResponsePathHints | undefined;
+            let sessionID: string | undefined;
 
             if (isQuery) {
                 const source = args.document.loc?.source.body;
                 const variables = args.variableValues;
                 const operationName = args.operationName;
+                sessionID = await this.sessionIDExtractor?.(args.contextValue);
 
-                const keyData = {
+                const extraKeys = await this.keyExtractor?.(args.contextValue) ?? {};
+                keyData = {
                     source,
                     variables,
                     operationName,
+                    extraKeys,
+                    sessionID,
                 };
 
-                const keyString = canonicalize(keyData);
-                key = sha(keyString);
-
                 if (shouldCache) {
-                    const cached = this.cache.get(key);
+                    const cached = this.cacheGet(keyData, sessionID);
                     if (cached) {
-                        const unpacked = JSON.parse(cached);
-                        return unpacked;
+                        return cached;
                     }
                 }
 
@@ -172,21 +193,67 @@ export class CachePlugin implements GraphQLPlugin {
                 args.contextValue.hints = hints;
             }
 
-            const result = next(args);
-            const resultValue: ExecutableResult = (result instanceof Promise) ? await result : result;
+            const result = await next(args);
 
-            if (!resultValue.errors && isQuery && hints) {
+            if (!result.errors && isQuery && hints) {
                 const policy = computeOverallCachePolicy(hints);
                 if (policy) {
-                    const serialized = JSON.stringify(resultValue);
-                    this.cache.put(key, serialized, policy.ttl);
+                    if (policy.scope === "PRIVATE") {
+                        if (!this.sessionIDExtractor) {
+                            this.warn("Cannot cache private scope items without session ID");
+                            return result;
+                        }
+                        if (!sessionID) {
+                            // Do not cache private data for non-logged in users.
+                            return result;
+                        }
+                        keyData.sessionMode = SessionMode.sessionPrivate;
+                    } else {
+                        if (sessionID) {
+                            keyData.sessionMode = SessionMode.sessionPublic;
+                        } else {
+                            keyData.sessionMode = SessionMode.noSession;
+                        }
+                    }
+                    this.cachePut(keyData, policy.ttl, result);
                 }
             }
-            return resultValue;
+            return result;
         };
     }
 
-    hintFromDirectives(
+    private warn(message: string): void {
+        this.onError?.(new Error(message));
+    }
+
+    private cachePut(keyData: KeyData, ttl: number, result: ExecutionResult): void {
+        const key = cacheKeyFromData(keyData);
+        const serialized = JSON.stringify(result);
+        this.cache.put(key, serialized, ttl);
+    }
+
+    private cacheGet(keyData: KeyData, sessionID: string | undefined): ExecutableResult | undefined {
+        let cachedString: string | undefined;
+
+        if (!sessionID) {
+            keyData.sessionMode = SessionMode.noSession;
+            const key = cacheKeyFromData(keyData);
+            cachedString = this.cache.get(key);
+        } else {
+            // We don't know yet if the scope is private, so we have to check that first
+            keyData.sessionMode = SessionMode.sessionPrivate;
+            const key = cacheKeyFromData(keyData);
+            cachedString = this.cache.get(key);
+            if (!cachedString) {
+                keyData.sessionMode = SessionMode.sessionPublic;
+                const key = cacheKeyFromData(keyData);
+                cachedString = this.cache.get(key);    
+            }
+        }
+        return cachedString ? JSON.parse(cachedString) : undefined;
+    }
+
+    private hintFromDirectives(
         directives: ReadonlyArray<DirectiveNode> | undefined,
     ): CacheHint | undefined {
         if (!directives) return undefined;
@@ -220,12 +287,26 @@ export class CachePlugin implements GraphQLPlugin {
 
 }
 
+enum SessionMode {
+    noSession,
+    sessionPrivate,
+    sessionPublic,
+}
+type KeyData = Record<string, unknown> & {sessionMode?: SessionMode};
+type CacheKeyExtractor = (ctx: Record<string, unknown>) => MaybePromise<Record<string, unknown>>;
+type SessionIDExtractor = (ctx: Record<string, unknown>) => MaybePromise<string>;
+
 interface CacheHint {
     ttl?: number;
     scope?: CacheScope;
 }
 
 type MapResponsePathHints = Map<ResponsePath, CacheHint>;
+
+function cacheKeyFromData(keyData: KeyData): string {
+    const keyString = canonicalize(keyData);
+    return sha(keyString);
+}
 
 function sha(s: string) {
     return createHash("sha256")

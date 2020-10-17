@@ -7,11 +7,13 @@ import { TracePlugin } from "../src/TracePlugin";
 
 const app = new Koa();
 
+const cachePlugin = new CachePlugin({onError: (err) => console.log(err)});
+
 const graphqlServer = makeServerMiddleware({
     typedefs: [
         gql`
             type Query {
-                version: String! @cache(ttl: SHORT)
+                version: String! @cache(ttl: SHORT, scope: PRIVATE)
             }
         `,
     ],
@@ -22,7 +24,7 @@ const graphqlServer = makeServerMiddleware({
             }
         }
     ],
-    plugins: [new TracePlugin(), new CachePlugin()],
+    plugins: [new TracePlugin(), cachePlugin],
     playgroundEndpoint: "/playground",
 });
 
