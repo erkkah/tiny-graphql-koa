@@ -1,6 +1,6 @@
 # graphql-server-koa
 
-A tiny GraphQL server middleware for Koa, built on the great [graphql-api-koa](https://github.com/jaydenseric/graphql-api-koa) middleware.
+A tiny GraphQL-serving middleware for Koa, built on the great [graphql-api-koa](https://github.com/jaydenseric/graphql-api-koa) middleware.
 
 Reduces the steps to get up and running, and provides plugin support to extend the GraphQL server functionality.
 
