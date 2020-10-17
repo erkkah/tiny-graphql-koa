@@ -1,10 +1,10 @@
 {
-   "name": "graphql-server-koa",
+   "name": "tiny-graphql-koa",
    "version": "0.5.0",
    "description": "Tiny GraphQL-serving middleware for Koa",
    "repository": {
       "type": "git",
-      "url": "https://github.com/erkkah/graphql-server-koa"
+      "url": "https://github.com/erkkah/tiny-graphql-koa"
    },
    "main": "lib/index.js",
    "types": "lib/index.d.ts",

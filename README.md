@@ -1,4 +1,4 @@
-# graphql-server-koa
+# tiny-graphql-koa
 
 A tiny GraphQL-serving middleware for Koa, built on the great [graphql-api-koa](https://github.com/jaydenseric/graphql-api-koa) middleware.
 
@@ -10,7 +10,7 @@ You can turn on the included [GraphQL playground](https://github.com/graphql/gra
 
 Install using npm:
 ```console
-$ npm add graphql-server-koa
+$ npm add tiny-graphql-koa
 ```
 
 Example using plugins and the playground:
@@ -19,7 +19,7 @@ Example using plugins and the playground:
 import Koa from "koa";
 import gql from "graphql-tag";
 
-import { makeServerMiddleware, CachePlugin, TracePlugin } from "graphql-api-koa";
+import { makeServerMiddleware, CachePlugin, TracePlugin } from "tiny-graphql-koa";
 
 const app = new Koa();
 
