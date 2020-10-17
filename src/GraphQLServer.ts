@@ -11,15 +11,21 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, ExecuteOptions } from "graphql-api-koa";
 import { execute as graphqlExecute } from "graphql";
 
-interface GraphQLServerOptions {
+interface GraphQLServerOptions<ContextT, StateT, CustomT> {
     typedefs: ITypedef[];
     resolvers: IResolvers[];
     plugins?: GraphQLPlugin[];
+    // Server endpoint path. Default is "/graphql".
     serverEndpoint?: string;
+    // Playground endpoint path. Default is no playground.
     playgroundEndpoint?: string;
+    // Per-request context setup hook. Default is passthrough of Koa context.
+    context?: (ctx: ParameterizedContext<StateT, CustomT>) => ContextT;
 }
 
-export function makeServerMiddleware<C, T>(options: GraphQLServerOptions): Middleware<C, T & IRouterParamContext<C, T>> {
+export function makeServerMiddleware<ContextT, StateT, CustomT>(
+    options: GraphQLServerOptions<ContextT, StateT, CustomT>
+): Middleware<StateT, CustomT & IRouterParamContext<StateT, CustomT>> {
     const schema = makeExecutableSchema(
         {
             typeDefs: [
@@ -54,7 +60,10 @@ export function makeServerMiddleware<C, T>(options: GraphQLServerOptions): Middl
         ...pluginMiddlewares,
         execute({
             ...executeOptions,
-            override: (ctx: ParameterizedContext<C, T>): Partial<ExecuteOptions> => {
+            override: (ctx: ParameterizedContext<StateT, CustomT>): Partial<ExecuteOptions> => {
+                if (options.context) {
+                    return options.context(ctx);
+                }
                 return {
                     contextValue: ctx,
                 };
@@ -62,7 +71,7 @@ export function makeServerMiddleware<C, T>(options: GraphQLServerOptions): Middl
         }),
     ];
 
-    const graphqlRouter = new koaRouter<C, T>();
+    const graphqlRouter = new koaRouter<StateT, CustomT>();
     graphqlRouter
         .use(errorHandler())
         .use(bodyParser({
