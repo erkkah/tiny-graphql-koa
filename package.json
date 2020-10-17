@@ -12,7 +12,7 @@
       "lib/**/*"
    ],
    "scripts": {
-      "clean": "rm -r lib && rm tsconfig.tsbuildinfo",
+      "clean": "rm -rf lib && rm -f tsconfig.tsbuildinfo",
       "build": "tsc",
       "lint": "eslint src/*",
       "example": "ts-node -P tsconfig.example.json --files example/index.ts",
