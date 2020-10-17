@@ -1,8 +1,8 @@
 # graphql-server-koa
 
-A tiny GraphQL server middleware for Koa building on the [graphql-api-koa](https://github.com/jaydenseric/graphql-api-koa) middleware.
+A tiny GraphQL server middleware for Koa, built on the [graphql-api-koa](https://github.com/jaydenseric/graphql-api-koa) middleware.
 
-Makes it easy to get started, and provides plugin support to extend the basic GraphQL server functionality.
+Reduces the steps to get up and running, and provides plugin support to extend the GraphQL server functionality.
 
 Includes two plugins, [TracePlugin](./src/TracePlugin.ts) &mdash; providing [Apollo Tracing](https://github.com/apollographql/apollo-tracing) support, and [CachePlugin](./src/CachePlugin.ts) &mdash; a full response cache.
 
