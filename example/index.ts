@@ -1,9 +1,7 @@
 import Koa from "koa";
 import gql from "graphql-tag";
 
-import { makeServerMiddleware } from "../src/GraphQLServer";
-import { CachePlugin } from "../src/CachePlugin";
-import { TracePlugin } from "../src/TracePlugin";
+import { makeServerMiddleware, CachePlugin, TracePlugin } from "../src";
 
 const app = new Koa();
 

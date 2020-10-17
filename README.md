@@ -8,15 +8,18 @@ Includes two plugins, [TracePlugin](./src/TracePlugin.ts) &mdash; providing [Apo
 
 You can turn on the included [GraphQL playground](https://github.com/graphql/graphql-playground) by setting the `playgroundEndpoint` in the startup options.
 
+Install using npm:
+```console
+$ npm add graphql-server-koa
+```
+
 Example using plugins and the playground:
 
 ```typescript
 import Koa from "koa";
 import gql from "graphql-tag";
 
-import { makeServerMiddleware } from "../src/GraphQLServer";
-import { CachePlugin } from "../src/CachePlugin";
-import { TracePlugin } from "../src/TracePlugin";
+import { makeServerMiddleware, CachePlugin, TracePlugin } from "graphql-api-koa";
 
 const app = new Koa();
 
