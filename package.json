@@ -1,6 +1,6 @@
 {
    "name": "graphql-server-koa",
-   "version": "1.0.0",
+   "version": "0.5.0",
    "description": "Tiny GraphQL-serving middleware for Koa",
    "repository": {
       "type": "git",
@@ -12,7 +12,6 @@
       "lib/**/*"
    ],
    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
       "clean": "rm -r lib && rm tsconfig.tsbuildinfo",
       "build": "tsc",
       "lint": "eslint src/*",
