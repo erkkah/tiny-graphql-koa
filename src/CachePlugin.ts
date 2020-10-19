@@ -78,7 +78,7 @@ export class CachePlugin implements GraphQLPlugin {
             LONG
         }
 
-        directive @cache(ttl: CacheTTL!, scope: CacheScope! = PUBLIC) on FIELD_DEFINITION
+        directive @cache(ttl: CacheTTL!, scope: CacheScope! = PUBLIC) on FIELD_DEFINITION | OBJECT | INTERFACE
         directive @noCache on QUERY
         `];
     }
