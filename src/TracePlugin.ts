@@ -2,7 +2,7 @@ import { SchemaTransform, mapSchema, MapperKind } from "@graphql-tools/utils";
 import { defaultFieldResolver, DocumentNode, GraphQLSchema } from "graphql";
 import { Path } from "graphql/jsutils/Path";
 import { Middleware, ParameterizedContext } from "koa";
-import { GraphQLPlugin, Wrapper } from "./GraphQLPlugin";
+import { GraphQLPlugin } from "./GraphQLPlugin";
 import { ServiceContext } from "./GraphQLServer";
 
 
@@ -46,8 +46,6 @@ export class TracePlugin implements GraphQLPlugin {
             }),
         ];
     }
-
-    wrap?: Wrapper | undefined;
 
     middleware: Middleware = async (ctx, next) => {
         ctx.requestStart = process.hrtime.bigint();
