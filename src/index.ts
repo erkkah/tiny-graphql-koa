@@ -4,3 +4,4 @@ export * from "./GraphQLPlugin";
 export * from "./CachePlugin";
 export * from "./TracePlugin";
 export * from "./LoggerPlugin";
+export * from "./errors";
