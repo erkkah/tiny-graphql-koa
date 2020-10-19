@@ -4,16 +4,21 @@ import { errorHandler } from "graphql-api-koa";
 import koaRouter, { IRouterParamContext } from "koa-router";
 import koaPlayground from "graphql-playground-middleware-koa";
 
-import { Middleware, ParameterizedContext } from "koa";
+import { Middleware, ParameterizedContext, DefaultState, DefaultContext } from "koa";
 import { ITypedef, IResolvers } from "@graphql-tools/utils";
 import { Executable, GraphQLPlugin, Wrapper } from "./GraphQLPlugin";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, ExecuteOptions } from "graphql-api-koa";
 import { execute as graphqlExecute } from "graphql";
 
-interface GraphQLServerOptions<ContextT, StateT, CustomT> {
+type Rec = Record<string, unknown>;
+export interface ServiceContext<StateT = DefaultState, CustomT = DefaultContext> extends Rec {
+    ctx: ParameterizedContext<StateT, CustomT>;
+}
+
+interface GraphQLServerOptions<ContextT extends ServiceContext<StateT, CustomT>, StateT, CustomT> {
     typedefs: ITypedef[];
-    resolvers: IResolvers[];
+    resolvers: IResolvers<Rec, ContextT>[];
     plugins?: GraphQLPlugin[];
     // Server endpoint path. Default is "/graphql".
     serverEndpoint?: string;
@@ -23,7 +28,7 @@ interface GraphQLServerOptions<ContextT, StateT, CustomT> {
     context?: (ctx: ParameterizedContext<StateT, CustomT>) => ContextT;
 }
 
-export function makeServerMiddleware<ContextT, StateT, CustomT>(
+export function makeServerMiddleware<ContextT extends ServiceContext<StateT, CustomT>, StateT = Rec, CustomT = Rec>(
     options: GraphQLServerOptions<ContextT, StateT, CustomT>
 ): Middleware<StateT, CustomT & IRouterParamContext<StateT, CustomT>> {
     const schema = makeExecutableSchema(
@@ -61,11 +66,14 @@ export function makeServerMiddleware<ContextT, StateT, CustomT>(
         execute({
             ...executeOptions,
             override: (ctx: ParameterizedContext<StateT, CustomT>): Partial<ExecuteOptions> => {
+                let contextValue = {
+                    ctx
+                };
                 if (options.context) {
-                    return options.context(ctx);
+                    contextValue = options.context(ctx);
                 }
                 return {
-                    contextValue: ctx,
+                    contextValue
                 };
             },
         }),

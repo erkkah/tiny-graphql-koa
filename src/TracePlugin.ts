@@ -1,8 +1,9 @@
 import { SchemaTransform, mapSchema, MapperKind } from "@graphql-tools/utils";
 import { defaultFieldResolver, DocumentNode, GraphQLSchema } from "graphql";
 import { Path } from "graphql/jsutils/Path";
-import { Middleware } from "koa";
+import { Middleware, ParameterizedContext } from "koa";
 import { GraphQLPlugin, Wrapper } from "./GraphQLPlugin";
+import { ServiceContext } from "./GraphQLServer";
 
 
 /**
@@ -32,11 +33,11 @@ export class TracePlugin implements GraphQLPlugin {
                             parentType: info.parentType.name,
                             fieldName: info.fieldName,
                             returnType: info.returnType.toString(),
-                            startOffset: Number(start - context.requestStart),
+                            startOffset: Number(start - context.ctx.requestStart),
                             duration: Number(end - start),
                         };
 
-                        const traces: ResolverTrace[] = context.traces;
+                        const traces: ResolverTrace[] = context.ctx.traces;
                         traces.push(trace);
                         return result;
                     };
@@ -84,9 +85,11 @@ function buildPath(path: Path): string[] {
     return result;
 }
 
-interface TraceContext {
-    requestStart: bigint;
-    traces: ResolverTrace[];
+interface TraceContext extends ServiceContext {
+    ctx: ParameterizedContext & {
+        requestStart: bigint;
+        traces: ResolverTrace[];
+    }
 }
 
 interface ResolverTrace {
