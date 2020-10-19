@@ -4,11 +4,18 @@ A tiny GraphQL-serving middleware for Koa, built on the great [graphql-api-koa](
 
 Reduces the steps to get up and running, and provides plugin support to extend the GraphQL server functionality.
 
-Includes two plugins, [TracePlugin](./src/TracePlugin.ts) &mdash; providing [Apollo Tracing](https://github.com/apollographql/apollo-tracing) support, and [CachePlugin](./src/CachePlugin.ts) &mdash; a full response cache.
+Included plugins:
+
+- [TracePlugin](./src/TracePlugin.ts) -- provides [Apollo Tracing](https://github.com/apollographql/apollo-tracing) support
+- [CachePlugin](./src/CachePlugin.ts) -- a full response cache
+- [LoggerPlugin](./src/LoggerPlugin.ts) -- base level logging plugin
 
 You can turn on the included [GraphQL playground](https://github.com/graphql/graphql-playground) by setting the `playgroundEndpoint` in the startup options.
 
+## Getting started
+
 Install using npm:
+
 ```console
 $ npm add tiny-graphql-koa
 ```
