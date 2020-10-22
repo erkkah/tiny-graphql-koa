@@ -20,24 +20,25 @@ export class TracePlugin implements GraphQLPlugin {
                 [MapperKind.OBJECT_FIELD]: (fieldConfig) => {
                     const { resolve = defaultFieldResolver } = fieldConfig;
 
-                    fieldConfig.resolve = async (source, args, context: TraceContext, info) => {
+                    fieldConfig.resolve = async (source, args, context: TracePluginContext, info) => {
                         const start = process.hrtime.bigint();
                         const path = buildPath(info.path);
 
-                        const result = resolve(source, args, context, info);
+                        const result = await resolve(source, args, context, info);
 
                         const end = process.hrtime.bigint();
 
+                        const pluginContext = context.ctx.tracePlugin;
                         const trace: ResolverTrace = {
                             path,
                             parentType: info.parentType.name,
                             fieldName: info.fieldName,
                             returnType: info.returnType.toString(),
-                            startOffset: Number(start - context.ctx.requestStart),
+                            startOffset: Number(start - pluginContext.requestStart),
                             duration: Number(end - start),
                         };
 
-                        const traces: ResolverTrace[] = context.ctx.traces;
+                        const traces: ResolverTrace[] = pluginContext.traces;
                         traces.push(trace);
                         return result;
                     };
@@ -48,8 +49,12 @@ export class TracePlugin implements GraphQLPlugin {
     }
 
     middleware: Middleware = async (ctx, next) => {
-        ctx.requestStart = process.hrtime.bigint();
-        ctx.traces = [];
+        const context = ctx as unknown as TraceContext;
+        const traceContext = {
+            requestStart: process.hrtime.bigint(),
+            traces: [],
+        };
+        context.tracePlugin = traceContext;
         const startTime = new Date();
         await next();
         const requestEnd = process.hrtime.bigint();
@@ -62,9 +67,9 @@ export class TracePlugin implements GraphQLPlugin {
             version: 1,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            duration: Number(requestEnd - ctx.requestStart),
+            duration: Number(requestEnd - traceContext.requestStart),
             execution: {
-                resolvers: ctx.traces,
+                resolvers: traceContext.traces,
             }
         };
         body.extensions.tracing = tracing;
@@ -83,11 +88,15 @@ function buildPath(path: Path): string[] {
     return result;
 }
 
-interface TraceContext extends ServiceContext {
-    ctx: ParameterizedContext & {
+type TraceContext = ParameterizedContext & {
+    tracePlugin: {
         requestStart: bigint;
         traces: ResolverTrace[];
     }
+}
+
+interface TracePluginContext extends ServiceContext {
+    ctx: TraceContext;
 }
 
 interface ResolverTrace {
