@@ -18,6 +18,7 @@ import { createHash } from "crypto";
 
 import { Executable, GraphQLPlugin, MaybePromise, ExecutableResult } from "./GraphQLPlugin";
 import { ExecutionResult } from "graphql/execution/execute";
+import { ServiceContext } from ".";
 
 type CacheScope = "PUBLIC" | "PRIVATE";
 type CacheTTL = "SHORT" | "MID" | "LONG";
@@ -91,8 +92,8 @@ export class CachePlugin implements GraphQLPlugin {
                     if ("cache" in directives) {
                         const { resolve = defaultFieldResolver } = fieldConfig;
 
-                        fieldConfig.resolve = async (source, args, context, info) => {
-                            const hints: MapResponsePathHints = context.hints;
+                        fieldConfig.resolve = async (source, args, context: CachePluginContext, info) => {
+                            const hints = context.cachePlugin.hints;
                             let hint: CacheHint = {};
                             const ttlDefault = 0;
 
@@ -168,9 +169,10 @@ export class CachePlugin implements GraphQLPlugin {
                 const source = args.document.loc?.source.body;
                 const variables = args.variableValues;
                 const operationName = args.operationName;
-                sessionID = await this.sessionIDExtractor?.(args.contextValue);
+                const context: CachePluginContext = args.contextValue;
+                sessionID = await this.sessionIDExtractor?.(context);
 
-                const extraKeys = await this.keyExtractor?.(args.contextValue) ?? {};
+                const extraKeys = await this.keyExtractor?.(context) ?? {};
                 keyData = {
                     source,
                     variables,
@@ -187,7 +189,7 @@ export class CachePlugin implements GraphQLPlugin {
                 }
 
                 hints = new Map();
-                args.contextValue.hints = hints;
+                context.cachePlugin = { hints };
             }
 
             const result = await next(args);
@@ -239,7 +241,7 @@ export class CachePlugin implements GraphQLPlugin {
             if (!cachedString) {
                 keyData.sessionMode = SessionMode.sessionPublic;
                 const key = cacheKeyFromData(keyData);
-                cachedString = this.cache.get(key);    
+                cachedString = this.cache.get(key);
             }
         }
         return cachedString ? JSON.parse(cachedString) : undefined;
@@ -284,9 +286,14 @@ enum SessionMode {
     sessionPrivate,
     sessionPublic,
 }
-type KeyData = Record<string, unknown> & {sessionMode?: SessionMode};
-type CacheKeyExtractor = (ctx: Record<string, unknown>) => MaybePromise<Record<string, unknown>>;
-type SessionIDExtractor = (ctx: Record<string, unknown>) => MaybePromise<string>;
+type KeyData = Record<string, unknown> & { sessionMode?: SessionMode };
+type CacheKeyExtractor = (ctx: ServiceContext) => MaybePromise<Record<string, unknown>>;
+type SessionIDExtractor = (ctx: ServiceContext) => MaybePromise<string>;
+interface CachePluginContext extends ServiceContext {
+    cachePlugin: {
+        hints: MapResponsePathHints;
+    }
+}
 
 interface CacheHint {
     ttl?: number;
