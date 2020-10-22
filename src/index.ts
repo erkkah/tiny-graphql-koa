@@ -1,7 +1,10 @@
 export { IResolvers } from "@graphql-tools/utils";
+
 export * from "./GraphQLServer";
 export * from "./GraphQLPlugin";
-export * from "./CachePlugin";
-export * from "./TracePlugin";
-export * from "./LoggerPlugin";
 export * from "./errors";
+
+export * from "./AuthPlugin";
+export * from "./CachePlugin";
+export * from "./LoggerPlugin";
+export * from "./TracePlugin";

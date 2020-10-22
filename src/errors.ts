@@ -10,6 +10,14 @@ export class ClientFacingError extends Error {
     }
 }
 
+export class AuthorizationError extends ClientFacingError {
+    readonly code = 403;
+
+    constructor() {
+        super("No access");
+    }
+}
+
 /**
  * ExtendedError adds service specific error data to the `extensions`
  * response field.
