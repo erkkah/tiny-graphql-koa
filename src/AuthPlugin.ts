@@ -15,19 +15,15 @@ export interface AuthPluginOptions {
 
 export type AuthorizationLevel = "PUBLIC" | "USER" | "ADMIN" | "GOD";
 
-const authorizationLevels: Record<AuthorizationLevel, number> = {
-    PUBLIC: 0,
-    USER: 1,
-    ADMIN: 2,
-    GOD: 99
-};
-
-interface AuthPluginContext extends ServiceContext {
-    authPlugin: {
-        level: AuthorizationLevel;
-    }
-}
-
+/**
+ * Authorization plugin.
+ * 
+ * Declare required authorization levels directly in your schemas
+ * using the @authorization(level: <level>) directive or the @a11n() alias.
+ * 
+ * The plugin supports a limited number of pre-defined levels. The current level
+ * is set by a hook implementing the AuthorizationLevelExtractor interface.
+ */
 export class AuthPlugin implements GraphQLPlugin {
     constructor(private readonly options: AuthPluginOptions) {
         if (!options.defaultLevel) {
@@ -80,6 +76,19 @@ export class AuthPlugin implements GraphQLPlugin {
             return next(args);
         };
     };
+}
+
+const authorizationLevels: Record<AuthorizationLevel, number> = {
+    PUBLIC: 0,
+    USER: 1,
+    ADMIN: 2,
+    GOD: 99
+};
+
+interface AuthPluginContext extends ServiceContext {
+    authPlugin: {
+        level: AuthorizationLevel;
+    }
 }
 
 function levelFromDirectives(
