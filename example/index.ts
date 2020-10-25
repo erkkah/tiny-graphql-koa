@@ -1,7 +1,7 @@
 import Koa from "koa";
 import gql from "graphql-tag";
 
-import { makeServerMiddleware, CachePlugin, TracePlugin } from "../src";
+import { makeServerMiddleware, CachePlugin, TracePlugin, AuthPlugin } from "../src";
 
 const app = new Koa();
 
@@ -9,7 +9,7 @@ const graphqlServer = makeServerMiddleware({
     typedefs: [
         gql`
             type Query {
-                version: String! @cache(ttl: SHORT)
+                version: String! @cache(ttl: SHORT) @a11n(level: PUBLIC)
             }
         `,
     ],
@@ -20,7 +20,14 @@ const graphqlServer = makeServerMiddleware({
             }
         }
     ],
-    plugins: [new TracePlugin(), new CachePlugin()],
+    plugins: [new TracePlugin(), new CachePlugin(), new AuthPlugin(
+        {
+            levelExtractor: () => {
+                // Today, everyone is admin!
+                return "ADMIN";
+            }
+        }
+    )],
     playgroundEndpoint: "/playground",
 });
 
