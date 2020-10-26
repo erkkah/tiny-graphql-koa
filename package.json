@@ -1,6 +1,6 @@
 {
    "name": "tiny-graphql-koa",
-   "version": "0.5.2",
+   "version": "0.6.0",
    "description": "Tiny GraphQL-serving middleware for Koa",
    "repository": {
       "type": "git",
@@ -20,6 +20,9 @@
    },
    "author": "Erik Agsjö",
    "license": "ISC",
+   "peerDependencies": {
+      "koa": "^2.13.0"
+   },
    "devDependencies": {
       "@types/koa": "^2.11.4",
       "@types/koa-bodyparser": "^4.3.0",
