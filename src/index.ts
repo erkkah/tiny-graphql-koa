@@ -8,3 +8,4 @@ export * from "./AuthPlugin";
 export * from "./CachePlugin";
 export * from "./LoggerPlugin";
 export * from "./TracePlugin";
+export * from "./L10nPlugin";
