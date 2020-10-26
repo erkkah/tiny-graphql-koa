@@ -1,7 +1,17 @@
 import Koa from "koa";
 import gql from "graphql-tag";
 
-import { makeServerMiddleware, CachePlugin, TracePlugin, AuthPlugin } from "../src";
+import {
+    makeServerMiddleware,
+    CachePlugin,
+    TracePlugin,
+    AuthPlugin,
+    LoggerPlugin,
+    LocalizationPlugin,
+    LocalizedString,
+    localized,
+    localeFromContext
+} from "../src";
 
 const app = new Koa();
 
@@ -10,13 +20,24 @@ const graphqlServer = makeServerMiddleware({
         gql`
             type Query {
                 version: String! @cache(ttl: SHORT) @a11n(level: PUBLIC)
+                localizedString: String! @localized
             }
         `,
     ],
     resolvers: [
         {
             Query: {
-                version: () => "1.2.3"
+                version: () => "1.2.3",
+                localizedString: (_parent, _args, ctx): string | LocalizedString => {
+                    const locale = localeFromContext(ctx);
+                    if (locale === "sv") {
+                        return localized("Tjena!", "sv");
+                    } else if (locale === "debug") {
+                        return "Not a localized string";
+                    } else {
+                        return localized("Hi there!", "en");
+                    }
+                }
             }
         }
     ],
@@ -27,7 +48,13 @@ const graphqlServer = makeServerMiddleware({
                 return "ADMIN";
             }
         }
-    )],
+    ),
+    new LocalizationPlugin({
+        defaultLocale: "en",
+        verifyLocalized: true
+    }),
+    new LoggerPlugin(),
+    ],
     playgroundEndpoint: "/playground",
 });
 
