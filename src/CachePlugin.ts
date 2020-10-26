@@ -389,3 +389,5 @@ class InMemoryCache implements StringCache {
         });
     }
 }
+
+export default CachePlugin;

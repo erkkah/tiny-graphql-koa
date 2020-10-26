@@ -125,3 +125,5 @@ interface GraphQLTrace {
         resolvers: ResolverTrace[];
     }
 }
+
+export default TracePlugin;
