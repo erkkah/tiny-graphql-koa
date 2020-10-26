@@ -10,6 +10,7 @@ Included plugins:
 - [CachePlugin](./src/CachePlugin.ts) -- a full response cache
 - [LoggerPlugin](./src/LoggerPlugin.ts) -- base level logging plugin
 - [AuthPlugin](./src/AuthPlugin.ts) -- schema defined authorization levels
+- [LocalizationPlugin](./src/L10nPlugin.ts) -- query level localization directive
 
 You can turn on the included [GraphQL playground](https://github.com/graphql/graphql-playground) by setting the `playgroundEndpoint` in the startup options.
 
