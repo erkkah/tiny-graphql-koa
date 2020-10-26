@@ -3,6 +3,7 @@
 ## [0.5.2] - unreleased
 ### Added
 - Authorization plugin
+- Localization plugin
 ### Fixed
 - Trace plugin missed await on child calls
 
