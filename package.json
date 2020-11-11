@@ -1,7 +1,13 @@
 {
    "name": "tiny-graphql-koa",
-   "version": "0.6.0",
+   "version": "0.6.1",
    "description": "Tiny GraphQL-serving middleware for Koa",
+   "keywords": [
+      "koa",
+      "graphql",
+      "middleware",
+      "tiny"
+   ],
    "repository": {
       "type": "git",
       "url": "https://github.com/erkkah/tiny-graphql-koa"
@@ -21,7 +27,8 @@
    "author": "Erik Agsjö",
    "license": "ISC",
    "peerDependencies": {
-      "koa": "^2.13.0"
+      "koa": "^2.13.0",
+      "graphql": "^14.0.0 || ^15.0.0"
    },
    "devDependencies": {
       "@types/koa": "^2.11.4",
@@ -40,7 +47,6 @@
       "@graphql-tools/utils": "^6.2.2",
       "@koa/router": "^9.4.0",
       "canonicalize": "^1.0.3",
-      "graphql": "^14.7.0",
       "graphql-api-koa": "^6.0.0",
       "graphql-playground-middleware-koa": "^1.6.20",
       "graphql-tag": "^2.11.0",
