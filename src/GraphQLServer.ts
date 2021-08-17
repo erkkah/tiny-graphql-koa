@@ -1,7 +1,7 @@
 
 import bodyParser from "koa-bodyparser";
 import { errorHandler } from "graphql-api-koa";
-import koaRouter, { IRouterParamContext } from "koa-router";
+import koaRouter, { RouterParamContext } from "@koa/router";
 import koaPlayground from "graphql-playground-middleware-koa";
 
 import { Middleware, ParameterizedContext, DefaultState, DefaultContext } from "koa";
@@ -30,7 +30,7 @@ interface GraphQLServerOptions<ContextT extends ServiceContext<StateT, CustomT>,
 
 export function makeServerMiddleware<ContextT extends ServiceContext<StateT, CustomT>, StateT = Rec, CustomT = Rec>(
     options: GraphQLServerOptions<ContextT, StateT, CustomT>
-): Middleware<StateT, CustomT & IRouterParamContext<StateT, CustomT>> {
+): Middleware<StateT, CustomT & RouterParamContext<StateT, CustomT>> {
     const schema = makeExecutableSchema(
         {
             typeDefs: [

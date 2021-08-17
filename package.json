@@ -1,6 +1,6 @@
 {
    "name": "tiny-graphql-koa",
-   "version": "0.6.1",
+   "version": "0.6.2",
    "description": "Tiny GraphQL-serving middleware for Koa",
    "keywords": [
       "koa",
@@ -32,8 +32,8 @@
    },
    "devDependencies": {
       "@types/koa": "^2.11.4",
+      "@types/koa__router": "^8.0.7",
       "@types/koa-bodyparser": "^4.3.0",
-      "@types/koa-router": "^7.4.1",
       "@types/node": "^14.10.0",
       "@typescript-eslint/eslint-plugin": "^4.1.0",
       "@typescript-eslint/parser": "^4.1.0",
@@ -46,13 +46,12 @@
    "dependencies": {
       "@graphql-tools/schema": "^6.2.2",
       "@graphql-tools/utils": "^6.2.2",
-      "@koa/router": "^9.4.0",
+      "@koa/router": "^10.1.0",
       "canonicalize": "^1.0.3",
       "graphql-api-koa": "^6.0.0",
       "graphql-playground-middleware-koa": "^1.6.20",
       "graphql-tag": "^2.11.0",
       "koa": "^2.13.0",
-      "koa-bodyparser": "^4.3.0",
-      "koa-router": "^9.4.0"
+      "koa-bodyparser": "^4.3.0"
    }
 }
