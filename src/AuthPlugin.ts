@@ -13,7 +13,17 @@ export interface AuthPluginOptions {
     levelExtractor: AuthorizationLevelExtractor;
 }
 
-export type AuthorizationLevel = "PUBLIC" | "USER" | "ADMIN" | "GOD";
+export type AuthorizationLevel =
+    | "PUBLIC"
+    | "USER"
+    | "USER2"
+    | "USER3"
+    | "USER4"
+    | "ADMIN"
+    | "ADMIN2"
+    | "ADMIN3"
+    | "ADMIN4"
+    | "GOD";
 
 /**
  * Authorization plugin.
@@ -36,7 +46,13 @@ export class AuthPlugin implements GraphQLPlugin {
         enum AuthorizationLevel {
             PUBLIC
             USER
+            USER2
+            USER3
+            USER4
             ADMIN
+            ADMIN2
+            ADMIN3
+            ADMIN4
             GOD
         }
         directive @a11n(level: AuthorizationLevel) on FIELD_DEFINITION
@@ -80,8 +96,14 @@ export class AuthPlugin implements GraphQLPlugin {
 
 const authorizationLevels: Record<AuthorizationLevel, number> = {
     PUBLIC: 0,
-    USER: 1,
-    ADMIN: 2,
+    USER: 10,
+    USER2: 11,
+    USER3: 12,
+    USER4: 13,
+    ADMIN: 20,
+    ADMIN2: 21,
+    ADMIN3: 22,
+    ADMIN4: 23,
     GOD: 99
 };
 
