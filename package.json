@@ -38,7 +38,6 @@
       "@typescript-eslint/eslint-plugin": "^4.1.0",
       "@typescript-eslint/parser": "^4.1.0",
       "eslint": "^7.9.0",
-      "graphql": "^15.4.0",
       "ts-node": "^9.0.0",
       "ts-node-dev": "^1.1.8",
       "typescript": "^4.0.2"
@@ -51,7 +50,6 @@
       "graphql-api-koa": "^6.0.0",
       "graphql-playground-middleware-koa": "^1.6.20",
       "graphql-tag": "^2.11.0",
-      "koa": "^2.13.0",
       "koa-bodyparser": "^4.3.0"
    }
 }
