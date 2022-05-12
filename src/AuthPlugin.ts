@@ -17,8 +17,15 @@ export type AuthorizationLevelExtractor = (
 ) => MaybePromise<AuthorizationLevel>;
 
 export interface AuthPluginOptions {
+    // The level set to all fields without explicit a11n directive.
+    // Defaults to "PUBLIC".
     defaultLevel?: AuthorizationLevel;
     levelExtractor: AuthorizationLevelExtractor;
+    // Optional mapping from named role to AuthorizationLevel.
+    // Used with a11n "role" argument.
+    roles?: {
+        [role: string]: AuthorizationLevel;
+    }
 }
 
 export type AuthorizationLevel =
@@ -70,6 +77,7 @@ export class AuthPlugin implements GraphQLPlugin {
                 ) on FIELD_DEFINITION
                 directive @authorization(
                     level: AuthorizationLevel
+                    role: String
                 ) on FIELD_DEFINITION
             `,
         ];
@@ -147,7 +155,25 @@ export class AuthPlugin implements GraphQLPlugin {
             return levelArgument.value.value;
         }
 
-        throw new Error("syntax error");
+        const roleArgument = authLevelDirective.arguments.find((argument) => argument.name.value === "role");
+
+        if (roleArgument) {
+            if (roleArgument.value.kind !== "StringValue") {
+                throw new Error("invalid 'role' argument");
+            }
+            const role = roleArgument.value.value;
+            if (this.options.roles && role in this.options.roles) {
+                const level = this.options.roles[role];
+
+                if (!isAuthorizationLevel(level)) {
+                    throw new Error("invalid 'role' definition");
+                }
+                return level;
+            }
+            throw new Error(`invalid 'role' "${role}"`);
+        }
+
+        throw new Error("syntax error, expected 'level' or 'role' argument");
     }
 }
 
