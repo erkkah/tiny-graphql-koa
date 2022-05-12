@@ -1,12 +1,20 @@
-import { DocumentNode, ExecutionArgs, GraphQLSchema, defaultFieldResolver, DirectiveNode } from "graphql";
-import { SchemaTransform, mapSchema, MapperKind, getDirectives } from "@graphql-tools/utils";
+import {
+    DocumentNode,
+    ExecutionArgs,
+    GraphQLSchema,
+    defaultFieldResolver,
+    DirectiveNode,
+} from "graphql";
+import { SchemaTransform, mapSchema, MapperKind } from "@graphql-tools/utils";
 
 import { GraphQLPlugin, Executable, MaybePromise } from ".";
 import gql from "graphql-tag";
 import { AuthorizationError } from "./errors";
 import { ServiceContext } from "./GraphQLServer";
 
-export type AuthorizationLevelExtractor = (ctx: ServiceContext) => MaybePromise<AuthorizationLevel>;
+export type AuthorizationLevelExtractor = (
+    ctx: ServiceContext
+) => MaybePromise<AuthorizationLevel>;
 
 export interface AuthPluginOptions {
     defaultLevel?: AuthorizationLevel;
@@ -27,60 +35,75 @@ export type AuthorizationLevel =
 
 /**
  * Authorization plugin.
- * 
+ *
  * Declare required authorization levels directly in your schemas
  * using the @authorization(level: <level>) directive or the @a11n() alias.
- * 
+ *
  * The plugin supports a limited number of pre-defined levels. The current level
  * is set by a hook implementing the AuthorizationLevelExtractor interface.
  */
 export class AuthPlugin implements GraphQLPlugin {
-    constructor(private readonly options: AuthPluginOptions) {
-        if (!options.defaultLevel) {
-            options.defaultLevel = "PUBLIC";
-        }
+    constructor(private readonly options: AuthPluginOptions) {}
+
+    get defaultLevel(): AuthorizationLevel {
+        return this.options.defaultLevel ?? "PUBLIC";
     }
 
     directives(): (string | DocumentNode)[] {
-        return [gql`
-        enum AuthorizationLevel {
-            PUBLIC
-            USER
-            USER2
-            USER3
-            USER4
-            ADMIN
-            ADMIN2
-            ADMIN3
-            ADMIN4
-            GOD
-        }
-        directive @a11n(level: AuthorizationLevel) on FIELD_DEFINITION
-        directive @authorization(level: AuthorizationLevel) on FIELD_DEFINITION
-        `];
+        return [
+            gql`
+                enum AuthorizationLevel {
+                    PUBLIC
+                    USER
+                    USER2
+                    USER3
+                    USER4
+                    ADMIN
+                    ADMIN2
+                    ADMIN3
+                    ADMIN4
+                    GOD
+                }
+                directive @a11n(
+                    level: AuthorizationLevel
+                    role: String
+                ) on FIELD_DEFINITION
+                directive @authorization(
+                    level: AuthorizationLevel
+                ) on FIELD_DEFINITION
+            `,
+        ];
     }
 
     transforms(): SchemaTransform[] {
         return [
-            (schema: GraphQLSchema) => mapSchema(schema, {
-                [MapperKind.OBJECT_FIELD]: (fieldConfig) => {
-                    const directives = getDirectives(schema, fieldConfig);
-                    if ("authorization" in directives || "a11n" in directives) {
-                        const { resolve = defaultFieldResolver } = fieldConfig;
+            (schema: GraphQLSchema) =>
+                mapSchema(schema, {
+                    [MapperKind.OBJECT_FIELD]: (fieldConfig) => {
+                        {
+                            const { resolve = defaultFieldResolver } =
+                                fieldConfig;
 
-                        fieldConfig.resolve = async (source, args, context, info) => {
-                            const authContext: AuthPluginContext = context;
-                            const requiredLevel = levelFromDirectives(fieldConfig.astNode?.directives);
-                            if (hasAccess(authContext, requiredLevel)) {
-                                return resolve(source, args, context, info);
-                            } else {
-                                throw new AuthorizationError();
-                            }
-                        };
-                    }
-                    return fieldConfig;
-                }
-            })
+                            fieldConfig.resolve = async (
+                                source,
+                                args,
+                                context,
+                                info
+                            ) => {
+                                const authContext: AuthPluginContext = context;
+                                const requiredLevel = this.levelFromDirectives(
+                                    fieldConfig.astNode?.directives
+                                );
+                                if (hasAccess(authContext, requiredLevel)) {
+                                    return resolve(source, args, context, info);
+                                } else {
+                                    throw new AuthorizationError();
+                                }
+                            };
+                        }
+                        return fieldConfig;
+                    },
+                }),
         ];
     }
 
@@ -92,6 +115,40 @@ export class AuthPlugin implements GraphQLPlugin {
             return next(args);
         };
     };
+
+    levelFromDirectives(
+        directives: ReadonlyArray<DirectiveNode> | undefined
+    ): AuthorizationLevel {
+        if (!directives) return this.defaultLevel;
+
+        const authLevelDirective = directives.find(
+            (directive) =>
+                directive.name.value === "authorization" ||
+                directive.name.value === "a11n"
+        );
+
+        if (!authLevelDirective) return this.defaultLevel;
+
+        if (!authLevelDirective.arguments) {
+            throw new Error("missing argument");
+        }
+
+        const levelArgument = authLevelDirective.arguments.find(
+            (argument) => argument.name.value === "level"
+        );
+
+        if (levelArgument) {
+            if (
+                levelArgument.value.kind !== "EnumValue" ||
+                !isAuthorizationLevel(levelArgument.value.value)
+            ) {
+                throw new Error("invalid 'level' argument");
+            }
+            return levelArgument.value.value;
+        }
+
+        throw new Error("syntax error");
+    }
 }
 
 const authorizationLevels: Record<AuthorizationLevel, number> = {
@@ -104,47 +161,23 @@ const authorizationLevels: Record<AuthorizationLevel, number> = {
     ADMIN2: 21,
     ADMIN3: 22,
     ADMIN4: 23,
-    GOD: 99
+    GOD: 99,
 };
 
 interface AuthPluginContext extends ServiceContext {
     authPlugin: {
         level: AuthorizationLevel;
-    }
-}
-
-function levelFromDirectives(
-    directives: ReadonlyArray<DirectiveNode> | undefined,
-): AuthorizationLevel {
-    if (!directives) return "PUBLIC";
-
-    const authLevelDirective = directives.find(
-        (directive) => (
-            directive.name.value === "authorization" ||
-            directive.name.value === "a11n"
-        )
-    );
-    if (!authLevelDirective?.arguments) return "PUBLIC";
-
-    const levelArgument = authLevelDirective.arguments.find(
-        argument => argument.name.value === "level",
-    );
-
-    const level = levelArgument?.value?.kind === "EnumValue"
-        ? levelArgument.value.value ?? "PUBLIC"
-        : "PUBLIC";
-
-    if (!(isAuthorizationLevel(level))) {
-        throw new Error();
-    }
-    return level;
+    };
 }
 
 function isAuthorizationLevel(maybe: string): maybe is AuthorizationLevel {
     return maybe in authorizationLevels;
 }
 
-function hasAccess(context: AuthPluginContext | undefined, required: AuthorizationLevel): boolean {
+function hasAccess(
+    context: AuthPluginContext | undefined,
+    required: AuthorizationLevel
+): boolean {
     const currentLevel = context?.authPlugin?.level ?? "PUBLIC";
     return authorizationLevels[currentLevel] >= authorizationLevels[required];
 }

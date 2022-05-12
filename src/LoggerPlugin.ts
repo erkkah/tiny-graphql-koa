@@ -65,7 +65,8 @@ export class LoggerPlugin implements GraphQLPlugin {
                 }
                 return result;
             } catch (error) {
-                this.error(error);
+                const err = error as Error;
+                this.error(err.message);
                 throw error;
             }
         };
