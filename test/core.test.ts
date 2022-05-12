@@ -133,4 +133,50 @@ describe("GraphQLServer", () => {
             `)
         ).resolves.toEqual({ hello: "world" });
     });
+
+    test("AuthPlugin role argument", async () => {
+        setup(
+            gql`
+                type Query {
+                    no: String! @a11n(role: "king")
+                    hello: String! @a11n(role: "pawn")
+                }
+            `,
+
+            {
+                Query: {
+                    no: () => "access",
+                    hello: () => "world",
+                },
+            },
+
+            [
+                new LoggerPlugin(),
+                new AuthPlugin({
+                    levelExtractor: () => "PUBLIC",
+                    defaultLevel: "PUBLIC",
+                    roles: {
+                        pawn: "PUBLIC",
+                        king: "GOD",
+                    },
+                }),
+            ]
+        );
+
+        await expect(
+            call(gql`
+                query {
+                    no
+                }
+            `)
+        ).rejects.toMatchObject(new Error("GraphQL Error: No access"));
+
+        await expect(
+            call(gql`
+                query {
+                    hello
+                }
+            `)
+        ).resolves.toEqual({ hello: "world" });
+    });
 });
