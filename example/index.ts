@@ -18,8 +18,13 @@ const app = new Koa();
 const graphqlServer = makeServerMiddleware({
     typedefs: [
         gql`
+            type SecretObject @a11n(level: ADMIN2) {
+                number: Int!
+            }
+
             type Query {
                 version: String! @cache(ttl: SHORT) @a11n(level: PUBLIC)
+                secret: SecretObject!
                 localizedString: String! @localized
             }
         `,
@@ -28,6 +33,9 @@ const graphqlServer = makeServerMiddleware({
         {
             Query: {
                 version: () => "1.2.3",
+                secret: () => ({
+                    number: 4711
+                }),
                 localizedString: (_parent, _args, ctx): string | LocalizedString => {
                     const locale = localeFromContext(ctx);
                     if (locale === "sv") {
@@ -59,6 +67,6 @@ const graphqlServer = makeServerMiddleware({
 });
 
 app.use(graphqlServer);
-const server = app.listen(3000).on("listening", () => {
+const server = app.listen(3030).on("listening", () => {
     console.log("Up and running at:", server.address());
 });

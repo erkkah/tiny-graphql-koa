@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2022-05-20
+
+### Added
+- Auth directives can be set at the object level
+
+### Fixed
+- Auth directives are resolved *once* instead of on each request
+
 ## [0.8.0] - 2022-05-12
 
 ### Added
@@ -36,7 +44,8 @@
 ## [0.5.0] - 2020-10-17
 ### First release
 
-[0.8.0]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.7.1...v0.8.0
+[0.9.0]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/erkkah/tiny-graphql-koa/compare/v0.5.1...v0.6.0

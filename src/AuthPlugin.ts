@@ -25,7 +25,7 @@ export interface AuthPluginOptions {
     // Used with a11n "role" argument.
     roles?: {
         [role: string]: AuthorizationLevel;
-    }
+    };
 }
 
 export type AuthorizationLevel =
@@ -45,9 +45,16 @@ export type AuthorizationLevel =
  *
  * Declare required authorization levels directly in your schemas
  * using the @authorization(level: <level>) directive or the @a11n() alias.
+ * 
+ * The directive can be set on individual fields, or on object types.
+ * Field level directives override object level directives.
  *
  * The plugin supports a limited number of pre-defined levels. The current level
  * is set by a hook implementing the AuthorizationLevelExtractor interface.
+ * 
+ * An alternative to using the levels directly is to configure roles that
+ * map to the pre-defined levels: @a11n(role: "editor"). The roles are configured
+ * using the "roles" config property.
  */
 export class AuthPlugin implements GraphQLPlugin {
     constructor(private readonly options: AuthPluginOptions) {}
@@ -74,11 +81,11 @@ export class AuthPlugin implements GraphQLPlugin {
                 directive @a11n(
                     level: AuthorizationLevel
                     role: String
-                ) on FIELD_DEFINITION
+                ) on FIELD_DEFINITION | OBJECT
                 directive @authorization(
                     level: AuthorizationLevel
                     role: String
-                ) on FIELD_DEFINITION
+                ) on FIELD_DEFINITION | OBJECT
             `,
         ];
     }
@@ -87,10 +94,26 @@ export class AuthPlugin implements GraphQLPlugin {
         return [
             (schema: GraphQLSchema) =>
                 mapSchema(schema, {
-                    [MapperKind.OBJECT_FIELD]: (fieldConfig) => {
+                    [MapperKind.OBJECT_FIELD]: (
+                        fieldConfig,
+                        _fieldName,
+                        typeName,
+                        schema
+                    ) => {
                         {
                             const { resolve = defaultFieldResolver } =
                                 fieldConfig;
+
+                            const parentType = schema.getType(typeName);
+                            const parentDirectives =
+                                parentType?.astNode?.directives ?? [];
+                            const directives =
+                                fieldConfig.astNode?.directives ?? [];
+
+                            const fieldLevel = this.levelFromDirectives([
+                                ...directives,
+                                ...parentDirectives,
+                            ]);
 
                             fieldConfig.resolve = async (
                                 source,
@@ -99,10 +122,8 @@ export class AuthPlugin implements GraphQLPlugin {
                                 info
                             ) => {
                                 const authContext: AuthPluginContext = context;
-                                const requiredLevel = this.levelFromDirectives(
-                                    fieldConfig.astNode?.directives
-                                );
-                                if (hasAccess(authContext, requiredLevel)) {
+
+                                if (hasAccess(authContext, fieldLevel)) {
                                     return resolve(source, args, context, info);
                                 } else {
                                     throw new AuthorizationError();
@@ -155,7 +176,9 @@ export class AuthPlugin implements GraphQLPlugin {
             return levelArgument.value.value;
         }
 
-        const roleArgument = authLevelDirective.arguments.find((argument) => argument.name.value === "role");
+        const roleArgument = authLevelDirective.arguments.find(
+            (argument) => argument.name.value === "role"
+        );
 
         if (roleArgument) {
             if (roleArgument.value.kind !== "StringValue") {
