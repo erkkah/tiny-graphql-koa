@@ -1,6 +1,6 @@
 {
    "name": "tiny-graphql-koa",
-   "version": "0.9.0",
+   "version": "0.9.1",
    "description": "Tiny GraphQL-serving middleware for Koa",
    "keywords": [
       "koa",

@@ -45,13 +45,13 @@ export type AuthorizationLevel =
  *
  * Declare required authorization levels directly in your schemas
  * using the @authorization(level: <level>) directive or the @a11n() alias.
- * 
+ *
  * The directive can be set on individual fields, or on object types.
  * Field level directives override object level directives.
  *
  * The plugin supports a limited number of pre-defined levels. The current level
  * is set by a hook implementing the AuthorizationLevelExtractor interface.
- * 
+ *
  * An alternative to using the levels directly is to configure roles that
  * map to the pre-defined levels: @a11n(role: "editor"). The roles are configured
  * using the "roles" config property.
@@ -96,7 +96,7 @@ export class AuthPlugin implements GraphQLPlugin {
                 mapSchema(schema, {
                     [MapperKind.OBJECT_FIELD]: (
                         fieldConfig,
-                        _fieldName,
+                        fieldName,
                         typeName,
                         schema
                     ) => {
@@ -110,25 +110,35 @@ export class AuthPlugin implements GraphQLPlugin {
                             const directives =
                                 fieldConfig.astNode?.directives ?? [];
 
-                            const fieldLevel = this.levelFromDirectives([
-                                ...directives,
-                                ...parentDirectives,
-                            ]);
+                            try {
+                                const fieldLevel = this.levelFromDirectives([
+                                    ...directives,
+                                    ...parentDirectives,
+                                ]);
 
-                            fieldConfig.resolve = async (
-                                source,
-                                args,
-                                context,
-                                info
-                            ) => {
-                                const authContext: AuthPluginContext = context;
+                                fieldConfig.resolve = async (
+                                    source,
+                                    args,
+                                    context,
+                                    info
+                                ) => {
+                                    const authContext: AuthPluginContext =
+                                        context;
 
-                                if (hasAccess(authContext, fieldLevel)) {
-                                    return resolve(source, args, context, info);
-                                } else {
-                                    throw new AuthorizationError();
-                                }
-                            };
+                                    if (hasAccess(authContext, fieldLevel)) {
+                                        return resolve(
+                                            source,
+                                            args,
+                                            context,
+                                            info
+                                        );
+                                    } else {
+                                        throw new AuthorizationError();
+                                    }
+                                };
+                            } catch (err) {
+                                throw new Error(`Error in ${typeName}:${fieldName}, ${err}`);
+                            }
                         }
                         return fieldConfig;
                     },
