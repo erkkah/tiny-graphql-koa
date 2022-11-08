@@ -13,9 +13,11 @@ declare module "graphql-api-koa" {
         execute?(args: ExecutionArgs): Promise<ExecutionResult> | ExecutionResult;
     }
 
+    type MaybePromise<T> = Promise<T> | T;
+
     export function execute<StateT, CustomT = Record<string, unknown>>(
         options: ExecuteOptions & {
-            override?: (ctx: ParameterizedContext<StateT, CustomT>) => Partial<ExecuteOptions>;
+            override?: (ctx: ParameterizedContext<StateT, CustomT>) => MaybePromise<Partial<ExecuteOptions>>
         }
     ): Middleware<StateT, CustomT>;
 
