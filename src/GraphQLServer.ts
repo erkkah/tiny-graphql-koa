@@ -6,7 +6,7 @@ import koaPlayground from "graphql-playground-middleware-koa";
 
 import { Middleware, ParameterizedContext, DefaultState, DefaultContext } from "koa";
 import { ITypedef, IResolvers } from "@graphql-tools/utils";
-import { Executable, GraphQLPlugin, Wrapper } from "./GraphQLPlugin";
+import { Executable, GraphQLPlugin, MaybePromise, Wrapper } from "./GraphQLPlugin";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, ExecuteOptions } from "graphql-api-koa";
 import { execute as graphqlExecute } from "graphql";
@@ -25,7 +25,7 @@ interface GraphQLServerOptions<ContextT extends ServiceContext<StateT, CustomT>,
     // Playground endpoint path. Default is no playground.
     playgroundEndpoint?: string;
     // Per-request context setup hook. Default is passthrough of Koa context.
-    context?: (ctx: ParameterizedContext<StateT, CustomT>) => ContextT;
+    context?: (ctx: ParameterizedContext<StateT, CustomT>) => MaybePromise<ContextT>;
 }
 
 export function makeServerMiddleware<ContextT extends ServiceContext<StateT, CustomT>, StateT = Rec, CustomT = Rec>(
@@ -65,12 +65,12 @@ export function makeServerMiddleware<ContextT extends ServiceContext<StateT, Cus
         ...pluginMiddlewares,
         execute({
             ...executeOptions,
-            override: (ctx: ParameterizedContext<StateT, CustomT>): Partial<ExecuteOptions> => {
+            override: async (ctx: ParameterizedContext<StateT, CustomT>): Promise<Partial<ExecuteOptions>> => {
                 let contextValue = {
                     ctx
                 };
                 if (options.context) {
-                    contextValue = options.context(ctx);
+                    contextValue = await options.context(ctx);
                 }
                 return {
                     contextValue
